@@ -1,0 +1,9 @@
+.*.swp
+.*.swo
+__pycache__
+*.pyc
+*.ini
+*.csv
+*.json
+data/*
+api-access-examples
