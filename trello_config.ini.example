@@ -1,0 +1,11 @@
+[files]
+output_dir=./data
+
+[boards]
+#comma separated list of board ids
+board_keys=board_id1,board_id2,etc
+
+[trello_keys]
+key=
+token=
+
