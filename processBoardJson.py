@@ -163,7 +163,6 @@ def load_config(config_filename = 'trello_config.ini', config = None):
   if config is None:
     config = configparser.ConfigParser()
   config.read(os.path.join(root_dir, config_filename))
-  pprint(config.sections())
   return config
 
 def get_trello_dump(key, token, board_id):
@@ -184,11 +183,9 @@ if __name__ == "__main__":
   global args
   args = parser.parse_args()
   config = load_config('trello_config.ini')
-  pprint(config.sections())
-  pprint(args.config_filename)
+  #pprint(args.config_filename)
   #config = load_config(args.config_filename, config)
 
-  print(config['boards']['board_keys'])
   board_keys = config['boards']['board_keys'].split(',')
 
   for board in board_keys:
