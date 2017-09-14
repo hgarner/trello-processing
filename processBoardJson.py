@@ -10,6 +10,7 @@ import argparse
 import requests
 from datetime import datetime
 import csv
+from copy import deepcopy
 
 def import_json(filepath):
   cache_file = open(filepath, 'r')
@@ -150,7 +151,7 @@ def convert_json_to_flat(data):
         for item in checklist:
           current_row.append(item['text'])
           current_row.append(item['date'])
-        flat_data.append(current_row)
+        flat_data.append(deepcopy(current_row))
         if (len(checklist) > 0):
           current_row = current_row[:-(len(checklist)*2)]
       current_row = current_row[:-1]
@@ -163,6 +164,7 @@ def load_config(config_filename = 'trello_config.ini', config = None):
   if config is None:
     config = configparser.ConfigParser()
   config.read(os.path.join(root_dir, config_filename))
+  pprint(config.sections())
   return config
 
 def get_trello_dump(key, token, board_id):
@@ -183,9 +185,11 @@ if __name__ == "__main__":
   global args
   args = parser.parse_args()
   config = load_config('trello_config.ini')
-  #pprint(args.config_filename)
+  pprint(config.sections())
+  pprint(args.config_filename)
   #config = load_config(args.config_filename, config)
 
+  print(config['boards']['board_keys'])
   board_keys = config['boards']['board_keys'].split(',')
 
   for board in board_keys:
@@ -230,11 +234,3 @@ if __name__ == "__main__":
       print('Error: unable to retrieve data for board id {board_id}'.format(board_id = board))
       pprint(e)
     
-
-
-  
-
-
-
-  
-
