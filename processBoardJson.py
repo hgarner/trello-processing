@@ -11,6 +11,7 @@ import requests
 from datetime import datetime
 import csv
 from copy import deepcopy
+from pprint import pprint
 
 def import_json(filepath):
   cache_file = open(filepath, 'r')
@@ -96,12 +97,14 @@ def process_card_lists(data):
   card_lists = get_card_lists(cards)
   checklists = get_checklists(data)
   
-  # go through all the checklists and pull out any entries that have completed dates
+  # go through all the checklists and pull out any entries that have completed dates or that have a 'Y' or 'N' and have state as complete
   checkitem_path = '$.checkItems.[*]'
   for check_id, checklist in checklists.items():
     checkitems = get_path(checklist, checkitem_path)
     dated_checkitems = []
     datematch_string = r'^"(.*?)":[\s"]*([0-9]{4}/[0-9]{2}/[0-9]{2})["]*$'
+    confirmed_checkitems = []
+    confirm_match_string = r'^"(.*?)"[:\.]{1}[\s"]*([YN]{1})["]*$'
     for checkitem in checkitems:
       completed = re.search(datematch_string, checkitem.value['name'])
       if completed is not None:
@@ -111,8 +114,16 @@ def process_card_lists(data):
             'text': completed.group(1), 
             'date': completed.group(2)
           })
+      confirmed = re.search(confirm_match_string, checkitem.value['name'])
+      if confirmed is not None:
+        if checkitem.value['state'] == 'complete':
+          confirmed_checkitems.append({
+            #'id': checkitem.value['id'], 
+            'text': confirmed.group(1), 
+            'confirmed': confirmed.group(2)
+          })
 
-    checklists[check_id] = dated_checkitems
+    checklists[check_id] = dated_checkitems + confirmed_checkitems
 
   # get the checklist object and replace the id in the cards dict with these lists
   for card_id, checklist_ids in card_lists.items():
@@ -150,7 +161,10 @@ def convert_json_to_flat(data):
       for checklist in card_data:
         for item in checklist:
           current_row.append(item['text'])
-          current_row.append(item['date'])
+          try:
+            current_row.append(item['date'])
+          except KeyError:
+            current_row.append(item['confirmed'])
         flat_data.append(deepcopy(current_row))
         if (len(checklist) > 0):
           current_row = current_row[:-(len(checklist)*2)]
@@ -180,7 +194,7 @@ def get_trello_dump(key, token, board_id):
 if __name__ == "__main__":
   global config 
   print(os.getcwd())
-  parser = argparse.ArgumentParser(description='Process Trello export json files to return lisrt/board names and checklist items with completed dates')
+  parser = argparse.ArgumentParser(description='Process Trello export json files to return list/board names and checklist items with completed dates')
   parser.add_argument('--config', dest='config_filename', action='store', help='.ini configuration filename')
   global args
   args = parser.parse_args()
