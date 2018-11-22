@@ -104,23 +104,24 @@ def process_card_lists(data):
     dated_checkitems = []
     datematch_string = r'^"(.*?)":[\s"]*([0-9]{4}/[0-9]{2}/[0-9]{2})["]*$'
     confirmed_checkitems = []
-    confirm_match_string = r'^"(.*?)"[:\.]{1}[\s"]*([YN]{1})["]*$'
     for checkitem in checkitems:
-      completed = re.search(datematch_string, checkitem.value['name'])
-      if completed is not None:
-        if completed.group(2) is not None:
-          dated_checkitems.append({
-            #'id': checkitem.value['id'], 
-            'text': completed.group(1), 
-            'date': completed.group(2)
-          })
-      confirmed = re.search(confirm_match_string, checkitem.value['name'])
-      if confirmed is not None:
-        if checkitem.value['state'] == 'complete':
+      # check if item is ticked (state is 'complete')
+      if checkitem.value['state'] == 'complete':
+        completed_date = re.search(datematch_string, checkitem.value['name'])
+        # check if item matches date type - if so add with date
+        # if not, just add as a 'Y'
+        if completed_date is not None:
+          if completed_date.group(2) is not None:
+            dated_checkitems.append({
+              #'id': checkitem.value['id'], 
+              'text': completed_date.group(1), 
+              'date': completed_date.group(2)
+            })
+        else:
           confirmed_checkitems.append({
             #'id': checkitem.value['id'], 
-            'text': confirmed.group(1), 
-            'confirmed': confirmed.group(2)
+            'text': checkitem.value['name'], 
+            'confirmed': 'Y' # confirmed.group(2)
           })
 
     checklists[check_id] = dated_checkitems + confirmed_checkitems
