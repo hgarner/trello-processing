@@ -154,21 +154,53 @@ def convert_json_to_flat(data):
   current_row = []
   for list_name, list_data in data.items():
     current_row.append(list_name)
+    # for each list
+    # first, get a list of every (unique) checklist item text
+    # then go through each checklist and add items to row
+    # in order of above list
+    checklist_items = []
     for card_name, card_data in list_data.items():
-      current_row.append(card_name)
-      if len(card_data) == 0:
-        flat_data.append(current_row)
       for checklist in card_data:
         for item in checklist:
-          current_row.append(item['text'])
+          if item['text'] not in checklist_items:
+            checklist_items.append(item['text'])
+    sorted_checklist_items = sorted(checklist_items)
+
+    # now go through each card/checklist
+    # add all the sorted_checklist_items and data (date/confirmed)
+    # if present
+    for card_name, card_data in list_data.items():
+      # start with the card name
+      current_row.append(card_name)
+      # if it's got no checklists, just add the row 
+      if len(card_data) == 0:
+        flat_data.append(current_row)
+
+      # now add each item from sorted_checklist_items (all unique
+      # checklist item texts) to an ordered dict as keys, then add data 
+      # from relevant checklist items for this card
+      row_checklist_items = OrderedDict.fromkeys(sorted_checklist_items)
+
+      for checklist in card_data:
+        for item in checklist:
+          row_checklist_items[item['text']] = ''
           try:
-            current_row.append(item['date'])
+            row_checklist_items[item['text']] = item['date']
           except KeyError:
-            current_row.append(item['confirmed'])
-        flat_data.append(deepcopy(current_row))
-        if (len(checklist) > 0):
-          current_row = current_row[:-(len(checklist)*2)]
+            row_checklist_items[item['text']] = item['confirmed']
+      
+
+      for item, value in row_checklist_items.items():
+        current_row.append(item)
+        current_row.append(value)
+      flat_data.append(current_row)
+      # reset current row back before the start of this set of checklist items
+      # i.e. this card
+      current_row = current_row[:-(len(row_checklist_items)*2)]
+      # reset current row back before the start of this card
+      # i.e. this list
       current_row = current_row[:-1]
+    # reset current row back to before this list
     current_row = current_row[:-1]
 
   return flat_data
@@ -245,6 +277,6 @@ if __name__ == "__main__":
       print('Success: board {board_id} successfully processed'.format(board_id = data['id']))
 
     except Exception as e:
-      print('Error: unable to retrieve data for board id {board_id}'.format(board_id = board))
-      pprint(e)
-    
+    #  print('Error: unable to retrieve data for board id {board_id}'.format(board_id = board))
+    #  pprint(e) 
+      raise e
