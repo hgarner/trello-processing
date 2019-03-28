@@ -102,7 +102,7 @@ def process_card_lists(data):
   for check_id, checklist in checklists.items():
     checkitems = get_path(checklist, checkitem_path)
     dated_checkitems = []
-    datematch_string = r'^"(.*?)":[\s"]*([0-9]{4}/[0-9]{2}/[0-9]{2})["]*$'
+    datematch_string = r'^(?P<item_prefix>\({0,1}[A-Za-z0-9\s]{1,}\){0,1}){0,1}\s{0,1}"(?P<item_text>.*?)":[\s"]*(?P<item_date>([0-9]{4}/[0-9]{2}/[0-9]{2})|(Y{4}/M{2}/D{2}))["]*$'
     confirmed_checkitems = []
     for checkitem in checkitems:
       # check if item is ticked (state is 'complete')
@@ -111,11 +111,15 @@ def process_card_lists(data):
         # check if item matches date type - if so add with date
         # if not, just add as a 'Y'
         if completed_date is not None:
-          if completed_date.group(2) is not None:
+          if completed_date.group('item_date') is not None:
+            item_text = ''
+            #if completed_date.group('item_prefix') is not None:
+            #  item_text += completed_date.group('item_prefix')
+            item_text += completed_date.group('item_text')
             dated_checkitems.append({
               #'id': checkitem.value['id'], 
-              'text': completed_date.group(1), 
-              'date': completed_date.group(2)
+              'text': item_text, 
+              'date': completed_date.group('item_date')
             })
         else:
           confirmed_checkitems.append({
@@ -150,22 +154,37 @@ def process_card_lists(data):
 
   return readable_card_lists
 
-def convert_json_to_flat(data):
+# convert the json data of lists/cards/checklists into a flat structure
+# @param OrderedDict json data of {[list]: { [card]: {checklist, checklist}}}
+# @param bool by_list if True, separate data by list name 
+#        when getting all checklist item text, otherwise combine
+# @return list flattened json as ['card_name', 'item_name', 'item_data']
+def convert_json_to_flat(data, by_list = False):
   flat_data = []
-  current_row = []
+  pprint(data)
+  # set up a list to hold checklist item texts
+  checklist_items = []
   for list_name, list_data in data.items():
-    current_row.append(list_name)
     # for each list
     # first, get a list of every (unique) checklist item text
     # then go through each checklist and add items to row
     # in order of above list
-    checklist_items = []
     for card_name, card_data in list_data.items():
       for checklist in card_data:
         for item in checklist:
           if item['text'] not in checklist_items:
             checklist_items.append(item['text'])
-    sorted_checklist_items = sorted(checklist_items)
+  sorted_checklist_items = sorted(checklist_items)
+
+  pprint(sorted_checklist_items)
+  #assert False
+
+  # now go through all the lists and add a row for each card
+  # each row will contain an entry for all the sorted checklist items
+  # either by list if by_list is True, or all checklist items otherwise
+  for list_name, list_data in data.items():
+    current_row = []
+    current_row.append(list_name)
 
     # now go through each card/checklist
     # add all the sorted_checklist_items and data (date/confirmed)
